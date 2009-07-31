@@ -13,7 +13,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/4]).
+-export([start_link/5]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -24,13 +24,14 @@
 -define(SERVER,?MODULE).
 
 
-start_link(QHost,QPort,QUid,QPwd) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [QHost,QPort,QUid,QPwd], []).
+start_link(QHost,QPort,QUid,QPwd,VHost) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [QHost,QPort,QUid,QPwd,VHost], []).
 
 
 
-init([QHost,QPort,QUid,QPwd]) ->
-    Connection = amqp_connection:start_network_link(QUid, QPwd, QHost,QPort),
+init([QHost,QPort,QUid,QPwd,VHost]) ->
+    error_logger:info_report([init,{vhost,VHost}]),
+    Connection = amqp_connection:start_network_link(QUid, QPwd, QHost,QPort,VHost),
     Channel = amqp_connection:open_channel(Connection),
     QName = lib_amqp:declare_private_queue(Channel),
 
@@ -38,7 +39,6 @@ init([QHost,QPort,QUid,QPwd]) ->
 
     lib_amqp:bind_queue(Channel,<<"rabbit">>,QName,<<"">>),
 
-    error_logger:info_report([init_done,{q_name,QName}]),
     {ok, #state{connection = Connection,
                 channel = Channel,
                 q_name = QName}}.
