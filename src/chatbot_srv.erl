@@ -33,15 +33,27 @@ init([QHost,QPort,QUid,QPwd,VHost]) ->
     error_logger:info_report([init,{vhost,VHost}]),
     Connection = amqp_connection:start_network_link(QUid, QPwd, QHost,QPort,VHost),
     Channel = amqp_connection:open_channel(Connection),
-    QName = lib_amqp:declare_private_queue(Channel),
 
-    lib_amqp:subscribe(Channel, QName, self(), <<"">>),
+    #'queue.declare_ok'{queue = QName} =
+        amqp_channel:call(Channel, #'queue.declare'{exclusive = true,
+                                                    auto_delete = true}),
 
-    lib_amqp:bind_queue(Channel,<<"rabbit">>,QName,<<"">>),
+    #'basic.consume_ok'{consumer_tag = ConsumerTag} =
+        amqp_channel:subscribe(Channel, 
+                               #'basic.consume'{queue = QName,
+                                                no_ack = true}, 
+                               self()),
+    
+    #'queue.bind_ok'{} = 
+        amqp_channel:call(Channel, #'queue.bind'{queue = QName, 
+                                                 exchange = <<"rabbit">>,
+                                                 routing_key = <<>>}),
+    
 
     {ok, #state{connection = Connection,
                 channel = Channel,
-                q_name = QName}}.
+                q_name = QName,
+                c_tag = ConsumerTag}}.
 
 
 
@@ -73,7 +85,18 @@ handle_info(Info,State) ->
 
 
 terminate(_Reason, #state{connection=Connection,channel=Channel}) ->
-    lib_amqp:teardown(Connection,Channel),
+    #'channel.close_ok'{} = 
+        amqp_channel:call(Channel, 
+                          #'channel.close'{reply_code = 200,
+                                           reply_text = <<"Goodbye">>,
+                                           class_id = 0,
+                                           method_id = 0}),
+    #'connection.close_ok'{} = 
+        amqp_connection:close(Connection,
+                              #'connection.close'{reply_code = 200,
+                                                  reply_text = <<"Goodbye">>,
+                                                  class_id = 0,
+                                                  method_id = 0}),
     ok.
 
 
