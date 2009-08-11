@@ -1,0 +1,6 @@
+@author <juhani@juranki.com>
+@version 0.1
+@doc This is an application that I use to practice on different aspects of
+<a href="http://www.erlang.org/">Erlang</a>,
+<a href="http://www.amqp.org/">AMQP</a> and 
+<a href="http://www.rabbitmq.com/">RabbitMQ</a>.

@@ -1,0 +1,3 @@
+{application,chatbot}.
+{packages,[]}.
+{modules,[chatbot_app,chatbot_srv,chatbot_sup]}.

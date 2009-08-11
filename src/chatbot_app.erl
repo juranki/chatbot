@@ -1,7 +1,9 @@
 %%%-------------------------------------------------------------------
 %%% File    : chatbot_app.erl
-%%% Author  :  <juhani@juranki.com>
-%%% Description : 
+%%% @author  <juhani@juranki.com>
+%%% @copyright  2009 <juhani@juranki.com>
+%%% @doc OTP application module for chatbot
+%%% @end
 %%%
 %%% Created : 30 Jul 2009 by  <juhani@juranki.com>
 %%%-------------------------------------------------------------------
@@ -12,6 +14,7 @@
 %% Application callbacks
 -export([start/0, start/2, stop/1]).
 
+%% @doc Shorthand for `application:start(chatbot)'.
 start() ->
     application:start(chatbot).
 

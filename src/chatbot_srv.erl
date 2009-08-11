@@ -1,6 +1,8 @@
 %%%-------------------------------------------------------------------
 %%% File    : chatbot_srv.erl
-%%% Author  :  <juhani@juranki.com>
+%%% @author  <juhani@juranki.com>
+%%% @copyright  2009 <juhani@juranki.com>
+%%% @end
 %%% Description : 
 %%%
 %%% Created : 30 Jul 2009 by  <juhani@juranki.com>
@@ -24,15 +26,21 @@
 
 -define(SERVER,?MODULE).
 
+%% @spec (string(),integer(),binary(),binary(),binary()) -> Result
+%%         Result = {ok,pid()} | ignore | {error,Error}
+%%          Error = {already_started,pid()} | term()
+start_link(Host,Port,Uid,Pwd,VHost) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [Host,Port,Uid,Pwd,VHost], []).
 
-start_link(QHost,QPort,QUid,QPwd,VHost) ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [QHost,QPort,QUid,QPwd,VHost], []).
 
-
-
-init([QHost,QPort,QUid,QPwd,VHost]) ->
+%% @doc Initialize. Open AMQP Connection and Channel.
+%% Declare queue and bind it to an exchange. Start consuming messages from the queue.
+%%
+%% @spec ([term()]) -> Result
+%%        Result = {ok,term ()} | ignore | {error, term()}
+init([Host,Port,Uid,Pwd,VHost]) ->
     error_logger:info_report([init,{vhost,VHost}]),
-    Connection = amqp_connection:start_network_link(QUid, QPwd, QHost,QPort,VHost),
+    Connection = amqp_connection:start_network_link(Uid, Pwd, Host,Port,VHost),
     Channel = amqp_connection:open_channel(Connection),
 
     #'queue.declare_ok'{queue = QName} =
@@ -66,7 +74,12 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 
-
+%% @doc In gen_server handle_info/2 receives the subscribed messages
+%%
+%% @spec (InfoData::Data, #state{}) -> {noreply, #state{}}
+%%        Data = Message | ConsumeOK | term()
+%%         Message = {#'basic.deliver'{},#amqp_msg{}}
+%%         ConsumeOK = #'basic.consume_ok'{}
 handle_info(#'basic.consume_ok'{consumer_tag=Tag}, State) ->
     {noreply, State#state{c_tag=Tag}};
 handle_info({#'basic.deliver'{consumer_tag=Tag1,

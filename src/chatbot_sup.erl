@@ -1,7 +1,9 @@
 %%%-------------------------------------------------------------------
 %%% File    : chatbot_sup.erl
-%%% Author  :  <juhani@juranki.com>
-%%% Description : 
+%%% @author  <juhani@juranki.com>
+%%% @copyright  2009 <juhani@juranki.com>
+%%% @doc OTP supervisor module for chatbot
+%%% @end
 %%%
 %%% Created : 30 Jul 2009 by  <juhani@juranki.com>
 %%%-------------------------------------------------------------------
@@ -20,7 +22,7 @@
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
-
+%% @doc Load application parameters (`server, port, uid, pwd, and vhost') and make child spec.
 init([]) ->
     {ok, QServer} = application:get_env(chatbot, server),
     {ok, QPort} = application:get_env(chatbot, port),
