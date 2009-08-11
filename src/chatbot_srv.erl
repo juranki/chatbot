@@ -7,8 +7,9 @@
 %%%-------------------------------------------------------------------
 -module(chatbot_srv).
 
--include("rabbit.hrl").
+-include_lib("rabbit.hrl").
 -include_lib("rabbit_framing.hrl").
+-include_lib("amqp_client.hrl").
 
 -behaviour(gen_server).
 
@@ -70,7 +71,8 @@ handle_info(#'basic.consume_ok'{consumer_tag=Tag}, State) ->
     {noreply, State#state{c_tag=Tag}};
 handle_info({#'basic.deliver'{consumer_tag=Tag1,
                               routing_key=RK},
-             #content{payload_fragments_rev = [Payload|_IgnoreRest]}},
+             #amqp_msg{props = #'P_basic'{content_type= <<"text/plain">>},
+                       payload = Payload}},
             State = #state{c_tag = Tag2, 
                            channel=Channel}) 
   when Tag1 =:= Tag2, RK =/= <<"chatbot">> ->
@@ -114,9 +116,5 @@ publish_plain_text(Channel, X, RoutingKey, Payload) ->
     BasicPublish = #'basic.publish'{exchange = X,
                                     routing_key = RoutingKey,
                                     mandatory = false},
-    {ClassId, _MethodId} = rabbit_framing:method_id('basic.publish'),
-    Content = #content{class_id = ClassId,
-                       properties = Properties,
-                       properties_bin = none,
-                       payload_fragments_rev = [Payload]},
+    Content = #amqp_msg{props = Properties, payload = Payload},
     amqp_channel:cast(Channel, BasicPublish, Content).
