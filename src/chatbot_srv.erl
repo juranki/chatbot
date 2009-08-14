@@ -3,7 +3,6 @@
 %%% @author  <juhani@juranki.com>
 %%% @copyright  2009 <juhani@juranki.com>
 %%% @end
-%%% Description : 
 %%%
 %%% Created : 30 Jul 2009 by  <juhani@juranki.com>
 %%%-------------------------------------------------------------------
@@ -40,7 +39,12 @@ start_link(Host,Port,Uid,Pwd,VHost) ->
 %%        Result = {ok,term ()} | ignore | {error, term()}
 init([Host,Port,Uid,Pwd,VHost]) ->
     error_logger:info_report([init,{vhost,VHost}]),
-    Connection = amqp_connection:start_network_link(Uid, Pwd, Host,Port,VHost),
+    Connection = amqp_connection:start_network_link(
+                   #amqp_params{username = Uid, 
+                                password = Pwd, 
+                                virtual_host = VHost,
+                                host = Host,
+                                port = Port}),
     Channel = amqp_connection:open_channel(Connection),
 
     #'queue.declare_ok'{queue = QName} =

@@ -8,6 +8,6 @@
          {port, 5672},
          {uid,"guest"},
          {pwd,"guest"},
-         {vhost,<<"/">>}]},
+         {vhost,"/"}]},
   {mod, {chatbot_app,[]}}
  ]}.
