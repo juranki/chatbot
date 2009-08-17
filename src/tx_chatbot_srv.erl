@@ -1,18 +1,20 @@
 %%%-------------------------------------------------------------------
-%%% File    : chatbot_srv.erl
+%%% File    : chatbot_srv_tx.erl
 %%% @author  <juhani@juranki.com>
 %%% @copyright  2009 <juhani@juranki.com>
+%%% @doc Added transactions and acknowledgements to `chatbot_srv'
 %%% @end
 %%%
-%%% Created : 30 Jul 2009 by  <juhani@juranki.com>
+%%% Created : 17 Aug 2009 by  <juhani@juranki.com>
 %%%-------------------------------------------------------------------
--module(chatbot_srv).
+-module(tx_chatbot_srv).
+
+-behaviour(gen_server).
 
 -include_lib("rabbit.hrl").
 -include_lib("rabbit_framing.hrl").
 -include_lib("amqp_client.hrl").
 
--behaviour(gen_server).
 
 %% API
 -export([start_link/5]).
@@ -54,7 +56,7 @@ init([Host,Port,Uid,Pwd,VHost]) ->
     #'basic.consume_ok'{consumer_tag = ConsumerTag} =
         amqp_channel:subscribe(Channel, 
                                #'basic.consume'{queue = QName,
-                                                no_ack = true}, 
+                                                no_ack = false}, 
                                self()),
     
     #'queue.bind_ok'{} = 
@@ -62,6 +64,7 @@ init([Host,Port,Uid,Pwd,VHost]) ->
                                                  exchange = <<"rabbit">>,
                                                  routing_key = <<>>}),
     
+    ok = tx_select(Channel),
 
     {ok, #state{connection = Connection,
                 channel = Channel,
@@ -87,15 +90,20 @@ handle_cast(_Msg, State) ->
 handle_info(#'basic.consume_ok'{consumer_tag=Tag}, State) ->
     {noreply, State#state{c_tag=Tag}};
 handle_info({#'basic.deliver'{consumer_tag=Tag1,
-                              routing_key=RK},
+                              routing_key=RK,
+                              delivery_tag=DeliveryTag},
              #amqp_msg{props = #'P_basic'{content_type= <<"text/plain">>},
                        payload = Payload}},
             State = #state{c_tag = Tag2, 
                            channel=Channel}) 
-  when Tag1 =:= Tag2, RK =/= <<"chatbot">>, RK =/= <<"enterpricey_chatbot">>->
-    publish_plain_text(Channel, <<"rabbit">>, <<"chatbot">>, 
-                       <<"Hello, ", RK/binary, ": ", 
-                        Payload/binary, " to you too">>),
+  when Tag1 =:= Tag2, RK =/= <<"chatbot">>, RK =/= <<"enterpricey_chatbot">> ->
+    publish_plain_text(Channel, <<"rabbit">>, <<"enterpricey_chatbot">>, 
+                       <<Payload/binary, " is ok, but I prefer it with transactions and acknowledgements.">>),
+    error_logger:info_report(published),
+    basic_ack(Channel,DeliveryTag),
+    error_logger:info_report(acked),
+    ok = tx_commit(Channel),
+    error_logger:info_report(commited),
     {noreply,State};
 handle_info(Info,State) ->
     error_logger:info_report([chatbot_srv_info,
@@ -135,3 +143,15 @@ publish_plain_text(Channel, X, RoutingKey, Payload) ->
                                     mandatory = false},
     Content = #amqp_msg{props = Properties, payload = Payload},
     amqp_channel:cast(Channel, BasicPublish, Content).
+
+
+tx_select(Channel) ->
+    #'tx.select_ok'{} = amqp_channel:call(Channel, #'tx.select'{}),
+    ok.
+
+tx_commit(Channel) ->
+    #'tx.commit_ok'{} = amqp_channel:call(Channel, #'tx.commit'{}),
+    ok.
+
+basic_ack(Channel,DeliveryTag) ->
+    amqp_channel:cast(Channel, #'basic.ack'{delivery_tag=DeliveryTag}).

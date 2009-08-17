@@ -39,5 +39,15 @@ init([]) ->
                2000,
                worker,
                [chatbot_srv]},
-    {ok,{{one_for_one,0,1}, [Chatbot]}}.
+    TxChatbot = {tx_chatbot_srv,
+                 {tx_chatbot_srv,start_link,[QServer,
+                                             QPort,
+                                             QUid,
+                                             QPwd,
+                                             VHost]},
+                 permanent,
+                 2000,
+                 worker,
+                 [tx_chatbot_srv]},
+    {ok,{{one_for_one,0,1}, [Chatbot,TxChatbot]}}.
 
