@@ -96,14 +96,18 @@ handle_info({#'basic.deliver'{consumer_tag=Tag1,
                        payload = Payload}},
             State = #state{c_tag = Tag2, 
                            channel=Channel}) 
-  when Tag1 =:= Tag2, RK =/= <<"chatbot">>, RK =/= <<"enterpricey_chatbot">> ->
-    publish_plain_text(Channel, <<"rabbit">>, <<"enterpricey_chatbot">>, 
-                       <<Payload/binary, " is ok, but I prefer it with transactions and acknowledgements.">>),
-    error_logger:info_report(published),
+  when Tag1 =:= Tag2 ->
+    case RK of
+	<<"chatbot">> ->
+	    nop;
+	<<"enterpricey_chatbot">> ->
+	    nop;
+	_ ->
+	    publish_plain_text(Channel, <<"rabbit">>, <<"enterpricey_chatbot">>, 
+			       <<Payload/binary, " is ok, but I prefer it with transactions and acknowledgements.">>)
+    end,
     basic_ack(Channel,DeliveryTag),
-    error_logger:info_report(acked),
     ok = tx_commit(Channel),
-    error_logger:info_report(commited),
     {noreply,State};
 handle_info(Info,State) ->
     error_logger:info_report([chatbot_srv_info,
