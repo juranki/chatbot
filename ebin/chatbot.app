@@ -6,8 +6,8 @@
   {applications, [kernel, stdlib, sasl]},
   {env, [{server,"127.0.0.1"},
          {port, 5672},
-         {uid,"guest"},
-         {pwd,"guest"},
-         {vhost,"/"}]},
+         {uid,<<"guest">>},
+         {pwd,<<"guest">>},
+         {vhost,<<"/">>}]},
   {mod, {chatbot_app,[]}}
  ]}.

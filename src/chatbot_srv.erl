@@ -8,8 +8,6 @@
 %%%-------------------------------------------------------------------
 -module(chatbot_srv).
 
--include_lib("rabbit.hrl").
--include_lib("rabbit_framing.hrl").
 -include_lib("amqp_client.hrl").
 
 -behaviour(gen_server).
@@ -45,6 +43,9 @@ init([Host,Port,Uid,Pwd,VHost]) ->
                                 virtual_host = VHost,
                                 host = Host,
                                 port = Port}),
+
+    error_logger:info_report([init,{connection,Connection}]),
+
     Channel = amqp_connection:open_channel(Connection),
 
     #'queue.declare_ok'{queue = QName} =
